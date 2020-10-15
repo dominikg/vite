@@ -2,10 +2,10 @@ import path from 'path'
 import fs from 'fs-extra'
 import { Plugin, OutputBundle } from 'rollup'
 import { cleanUrl, isStaticAsset } from '../utils'
-import hash_sum from 'hash-sum'
+// import hash_sum from 'hash-sum'
 import slash from 'slash'
 import mime from 'mime-types'
-
+import { hash } from '../utils/hash'
 const debug = require('debug')('vite:build:asset')
 
 interface AssetCacheEntry {
@@ -56,10 +56,13 @@ export const resolveAsset = async (
   if (!resolved) {
     const ext = path.extname(id)
     const baseName = path.basename(id, ext)
-    const resolvedFileName = `${baseName}.${hash_sum(id)}${ext}`
+    let content: Buffer | undefined = await fs.readFile(id)
+
+    let hashsum = Buffer.isBuffer(content) ? hash(content) : 'empty'
+    const resolvedFileName = `${baseName}.${hashsum}${ext}`
 
     let url = publicBase + slash(path.join(assetsDir, resolvedFileName))
-    let content: Buffer | undefined = await fs.readFile(id)
+
     if (!id.endsWith(`.svg`) && content.length < Number(inlineLimit)) {
       url = `data:${mime.lookup(id)};base64,${content.toString('base64')}`
       content = undefined
